@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: docker.io/library/nginx:latest
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+        - name: html-content
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+      - name: html-content
+        configMap:
+          name: html-content
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  default.conf: |
+    server {
+        listen 80;
+
+        location / {
+            root /usr/share/nginx/html;
+            index index.html;
+        }
+
+        location /data {
+            proxy_pass http://backend:5000/data;
+        }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: html-content
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>React App</title>
+        <script>
+            async function submitData() {
+                const name = document.getElementById('name').value;
+                const value = document.getElementById('value').value;
+                const response = await fetch('/data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, value })
+                });
+                const result = await response.text();
+                alert(result);
+            }
+
+            async function fetchData() {
+                const response = await fetch('/data');
+                const data = await response.json();
+                document.getElementById('data').innerText = JSON.stringify(data, null, 2);
+            }
+        </script>
+    </head>
+    <body>
+        <div id="root">
+            <h1>Hello from React!</h1>
+            <form onsubmit="event.preventDefault(); submitData();">
+                <input type="text" id="name" placeholder="Name" required>
+                <input type="text" id="value" placeholder="Value" required>
+                <button type="submit">Submit</button>
+            </form>
+            <button onclick="fetchData()">Fetch Data</button>
+            <pre id="data"></pre>
+        </div>
+    </body>
+    </html>
