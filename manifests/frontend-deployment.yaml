@@ -54,12 +54,18 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: html-content
+  namespace: default
 data:
   index.html: |
     <!DOCTYPE html>
     <html>
     <head>
-        <title>React App</title>
+        <title>React App with Three.js</title>
+        <style>
+            body { margin: 0; }
+            canvas { display: block; }
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
         <script>
             async function submitData() {
                 const name = document.getElementById('name').value;
@@ -80,6 +86,32 @@ data:
                 const data = await response.json();
                 document.getElementById('data').innerText = JSON.stringify(data, null, 2);
             }
+
+            function initThreeJS() {
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(renderer.domElement);
+
+                // Create a simple character
+                const characterGeometry = new THREE.BoxGeometry(1, 2, 1);
+                const characterMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+                const character = new THREE.Mesh(characterGeometry, characterMaterial);
+                scene.add(character);
+
+                camera.position.z = 5;
+
+                function animate() {
+                    requestAnimationFrame(animate);
+                    character.rotation.y += 0.01; // Rotate the character
+                    renderer.render(scene, camera);
+                }
+
+                animate();
+            }
+
+            window.onload = initThreeJS;
         </script>
     </head>
     <body>
